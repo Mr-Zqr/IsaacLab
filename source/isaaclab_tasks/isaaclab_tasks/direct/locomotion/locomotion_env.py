@@ -192,7 +192,6 @@ def compute_rewards(
 ):
     heading_weight_tensor = torch.ones_like(heading_proj) * heading_weight
     heading_reward = torch.where(heading_proj > 0.8, heading_weight_tensor, heading_weight * heading_proj / 0.8)
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
 
     # aligning up axis of robot and environment
     up_reward = torch.zeros_like(heading_reward)

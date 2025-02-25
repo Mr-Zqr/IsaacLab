@@ -134,16 +134,16 @@ class G1EnvCfg(DirectRLEnvCfg):
         50.0,  # left_elbow
     ]
 
-    heading_weight: float = 0.7  # 增加朝向奖励的权重，鼓励朝前走
-    up_weight: float = 0.2  # 保持竖直方向的奖励
-    energy_cost_scale: float = 0.01  # 减少能耗惩罚，鼓励机器人移动
-    actions_cost_scale: float = 0.005  # 减少动作成本，允许机器人自由移动
-    alive_reward_scale: float = 3.0  # 增加生存奖励，鼓励机器人长时间活动
-    dof_vel_scale: float = 0.2  # 增加关节速度奖励，鼓励更快的动作
-    death_cost: float = -0.5  # 减少死亡惩罚
-    termination_height: float = 0.6  # 降低死亡的高度阈值
-    angular_velocity_scale: float = 0.1  # 减少角速度奖励
-    contact_force_scale: float = 0.05  # 增加接触力奖励
+    heading_weight: float = 0.5  # 增加朝向奖励的权重，鼓励朝前走
+    up_weight: float = 0.1  # 保持竖直方向的奖励
+    energy_cost_scale: float = 0.04  # 减少能耗惩罚，鼓励机器人移动
+    actions_cost_scale: float = 0  # 减少动作成本，允许机器人自由移动
+    alive_reward_scale: float = 2.0  # 增加生存奖励，鼓励机器人长时间活动
+    dof_vel_scale: float = 0.01  # 增加关节速度奖励，鼓励更快的动作
+    death_cost: float = -1.0  # 减少死亡惩罚
+    termination_height: float = 0.5  # 降低死亡的高度阈值
+    angular_velocity_scale: float = 0.36  # 减少角速度奖励
+    contact_force_scale: float = 0.01  # 增加接触力奖励
 
 
 class G1Env(LocomotionEnv):
