@@ -16,14 +16,14 @@ from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.math import axis_angle_from_quat
 
-from . import factory_control as fc
-from .factory_env_cfg import OBS_DIM_CFG, STATE_DIM_CFG, FactoryEnvCfg
+from . import factory_nut_bolt_pick_control as fc
+from .factory_nut_bolt_pick_env_cfg import OBS_DIM_CFG, STATE_DIM_CFG, FactoryNutBoltPickEnvCfg
 
 
-class FactoryEnv(DirectRLEnv):
-    cfg: FactoryEnvCfg
+class FactoryNutBoltPickEnv(DirectRLEnv):
+    cfg: FactoryNutBoltPickEnvCfg
 
-    def __init__(self, cfg: FactoryEnvCfg, render_mode: str | None = None, **kwargs):
+    def __init__(self, cfg: FactoryNutBoltPickEnvCfg, render_mode: str | None = None, **kwargs):
         # Update number of obs/states
         cfg.observation_space = sum([OBS_DIM_CFG[obs] for obs in cfg.obs_order])
         cfg.state_space = sum([STATE_DIM_CFG[state] for state in cfg.state_order])
