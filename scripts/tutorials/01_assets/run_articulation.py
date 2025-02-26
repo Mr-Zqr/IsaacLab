@@ -44,6 +44,7 @@ from isaaclab.sim import SimulationContext
 # Pre-defined configs
 ##
 from isaaclab_assets import CARTPOLE_CFG  # isort:skip
+from isaaclab_assets import G1_CFG
 
 
 def design_scene() -> tuple[dict, list[list[float]]]:
@@ -65,6 +66,7 @@ def design_scene() -> tuple[dict, list[list[float]]]:
 
     # Articulation
     cartpole_cfg = CARTPOLE_CFG.copy()
+    # cartpole_cfg = G1_CFG.copy()
     cartpole_cfg.prim_path = "/World/Origin.*/Robot"
     cartpole = Articulation(cfg=cartpole_cfg)
 

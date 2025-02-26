@@ -48,8 +48,8 @@ class G1EnvCfg(DirectRLEnvCfg):
     # wave_terrain_cfg = HfWaveTerrainCfg(
     #     proportion = 1.0, 
     #     size = (20.0, 20.0),
-    #     amplitude_range=(0.1, 0.5),
-    #     num_waves=5,
+    #     amplitude_range=(0.1, 0.3),
+    #     num_waves=4,
     #     border_width=0.0,
     #     horizontal_scale=0.1,
     #     vertical_scale=0.005,
@@ -134,19 +134,16 @@ class G1EnvCfg(DirectRLEnvCfg):
         50.0,  # left_elbow
     ]
 
-    heading_weight: float = 0.7
-    up_weight: float = 0.2
-
-    energy_cost_scale: float = 0.01
-    actions_cost_scale: float = 0.005
-    alive_reward_scale: float = 3.0
-    dof_vel_scale: float = 0.2
-
-    death_cost: float = -0.5
-    termination_height: float = 0.6
-
-    angular_velocity_scale: float = 0.1
-    contact_force_scale: float = 0.05
+    heading_weight: float = 0.5  # 增加朝向奖励的权重，鼓励朝前走
+    up_weight: float = 0.1  # 保持竖直方向的奖励
+    energy_cost_scale: float = 0.04  # 减少能耗惩罚，鼓励机器人移动
+    actions_cost_scale: float = 0  # 减少动作成本，允许机器人自由移动
+    alive_reward_scale: float = 2.0  # 增加生存奖励，鼓励机器人长时间活动
+    dof_vel_scale: float = 0.01  # 增加关节速度奖励，鼓励更快的动作
+    death_cost: float = -1.0  # 减少死亡惩罚
+    termination_height: float = 0.5  # 降低死亡的高度阈值
+    angular_velocity_scale: float = 0.36  # 减少角速度奖励
+    contact_force_scale: float = 0.01  # 增加接触力奖励
 
 
 class G1Env(LocomotionEnv):
