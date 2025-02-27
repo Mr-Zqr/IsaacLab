@@ -90,16 +90,8 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
         # Held asset
         held_base_x_offset = 0.0
-        if self.cfg_task.name == "peg_insert":
-            held_base_z_offset = 0.0
-        elif self.cfg_task.name == "gear_mesh":
-            gear_base_offset = self._get_target_gear_base_offset()
-            held_base_x_offset = gear_base_offset[0]
-            held_base_z_offset = gear_base_offset[2]
-        elif self.cfg_task.name == "nut_thread":
-            held_base_z_offset = self.cfg_task.fixed_asset_cfg.base_height
-        else:
-            raise NotImplementedError("Task not implemented")
+
+        held_base_z_offset = self.cfg_task.fixed_asset_cfg.base_height
 
         self.held_base_pos_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).repeat((self.num_envs, 1))
         self.held_base_pos_local[:, 0] = held_base_x_offset
@@ -131,20 +123,11 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
         # Used to compute target poses.
         self.fixed_success_pos_local = torch.zeros((self.num_envs, 3), device=self.device)
-        if self.cfg_task.name == "peg_insert":
-            self.fixed_success_pos_local[:, 2] = 0.0
-        elif self.cfg_task.name == "gear_mesh":
-            gear_base_offset = self._get_target_gear_base_offset()
-            self.fixed_success_pos_local[:, 0] = gear_base_offset[0]
-            self.fixed_success_pos_local[:, 2] = gear_base_offset[2]
-        elif self.cfg_task.name == "nut_thread":
-            head_height = self.cfg_task.fixed_asset_cfg.base_height
-            shank_length = self.cfg_task.fixed_asset_cfg.height
-            thread_pitch = self.cfg_task.fixed_asset_cfg.thread_pitch
-            self.fixed_success_pos_local[:, 2] = head_height + shank_length - thread_pitch * 1.5
-        else:
-            raise NotImplementedError("Task not implemented")
-
+        # elif self.cfg_task.name == "nut_bolt_pick":
+        head_height = self.cfg_task.fixed_asset_cfg.base_height
+        shank_length = self.cfg_task.fixed_asset_cfg.height
+        thread_pitch = self.cfg_task.fixed_asset_cfg.thread_pitch
+        self.fixed_success_pos_local[:, 2] = head_height + shank_length - thread_pitch * 1.5
         self.ep_succeeded = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
         self.ep_success_times = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
 
@@ -435,12 +418,8 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
         is_centered = torch.where(xy_dist < 0.0025, torch.ones_like(curr_successes), torch.zeros_like(curr_successes))
         # Height threshold to target
         fixed_cfg = self.cfg_task.fixed_asset_cfg
-        if self.cfg_task.name == "peg_insert" or self.cfg_task.name == "gear_mesh":
-            height_threshold = fixed_cfg.height * success_threshold
-        elif self.cfg_task.name == "nut_thread":
-            height_threshold = fixed_cfg.thread_pitch * success_threshold
-        else:
-            raise NotImplementedError("Task not implemented")
+        # elif self.cfg_task.name == "nut_bolt_pick":
+        height_threshold = fixed_cfg.thread_pitch * success_threshold
         is_close_or_below = torch.where(
             z_disp < height_threshold, torch.ones_like(curr_successes), torch.zeros_like(curr_successes)
         )
@@ -455,7 +434,7 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
     def _get_rewards(self):
         """Update rewards and compute success statistics."""
         # Get successful and failed envs at current timestep
-        check_rot = self.cfg_task.name == "nut_thread"
+        check_rot = self.cfg_task.name == "nut_bolt_pick"
         curr_successes = self._get_curr_successes(
             success_threshold=self.cfg_task.success_threshold, check_rot=check_rot
         )
@@ -601,23 +580,11 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
     def get_handheld_asset_relative_pose(self):
         """Get default relative pose between help asset and fingertip."""
-        if self.cfg_task.name == "peg_insert":
-            held_asset_relative_pos = torch.zeros_like(self.held_base_pos_local)
-            held_asset_relative_pos[:, 2] = self.cfg_task.held_asset_cfg.height
-            held_asset_relative_pos[:, 2] -= self.cfg_task.robot_cfg.franka_fingerpad_length
-        elif self.cfg_task.name == "gear_mesh":
-            held_asset_relative_pos = torch.zeros_like(self.held_base_pos_local)
-            gear_base_offset = self._get_target_gear_base_offset()
-            held_asset_relative_pos[:, 0] += gear_base_offset[0]
-            held_asset_relative_pos[:, 2] += gear_base_offset[2]
-            held_asset_relative_pos[:, 2] += self.cfg_task.held_asset_cfg.height / 2.0 * 1.1
-        elif self.cfg_task.name == "nut_thread":
-            held_asset_relative_pos = self.held_base_pos_local
-        else:
-            raise NotImplementedError("Task not implemented")
+        # elif self.cfg_task.name == "nut_bolt_pick":
+        held_asset_relative_pos = self.held_base_pos_local
 
         held_asset_relative_quat = self.identity_quat
-        if self.cfg_task.name == "nut_thread":
+        if self.cfg_task.name == "nut_bolt_pick":
             # Rotate along z-axis of frame for default position.
             initial_rot_deg = self.cfg_task.held_asset_rot_init
             rot_yaw_euler = torch.tensor([0.0, 0.0, initial_rot_deg * np.pi / 180.0], device=self.device).repeat(
