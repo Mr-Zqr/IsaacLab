@@ -16,14 +16,14 @@ from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.math import axis_angle_from_quat
 
-from . import factory_nut_bolt_pick_control as fc
-from .factory_nut_bolt_pick_env_cfg import OBS_DIM_CFG, STATE_DIM_CFG, FactoryNutBoltPickEnvCfg
+from . import factory_control as fc
+from .factory_env_cfg import OBS_DIM_CFG, STATE_DIM_CFG, FactoryEnvCfg
 
 
-class FactoryNutBoltPickEnv(DirectRLEnv):
-    cfg: FactoryNutBoltPickEnvCfg
+class FactoryEnv(DirectRLEnv):
+    cfg: FactoryEnvCfg
 
-    def __init__(self, cfg: FactoryNutBoltPickEnvCfg, render_mode: str | None = None, **kwargs):
+    def __init__(self, cfg: FactoryEnvCfg, render_mode: str | None = None, **kwargs):
         # Update number of obs/states
         cfg.observation_space = sum([OBS_DIM_CFG[obs] for obs in cfg.obs_order])
         cfg.state_space = sum([STATE_DIM_CFG[state] for state in cfg.state_order])
@@ -90,8 +90,16 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
         # Held asset
         held_base_x_offset = 0.0
-
-        held_base_z_offset = self.cfg_task.fixed_asset_cfg.base_height
+        if self.cfg_task.name == "peg_insert":
+            held_base_z_offset = 0.0
+        elif self.cfg_task.name == "gear_mesh":
+            gear_base_offset = self._get_target_gear_base_offset()
+            held_base_x_offset = gear_base_offset[0]
+            held_base_z_offset = gear_base_offset[2]
+        elif self.cfg_task.name == "nut_thread":
+            held_base_z_offset = self.cfg_task.fixed_asset_cfg.base_height
+        else:
+            raise NotImplementedError("Task not implemented")
 
         self.held_base_pos_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).repeat((self.num_envs, 1))
         self.held_base_pos_local[:, 0] = held_base_x_offset
@@ -123,11 +131,20 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
         # Used to compute target poses.
         self.fixed_success_pos_local = torch.zeros((self.num_envs, 3), device=self.device)
-        # elif self.cfg_task.name == "nut_bolt_pick":
-        head_height = self.cfg_task.fixed_asset_cfg.base_height
-        shank_length = self.cfg_task.fixed_asset_cfg.height
-        thread_pitch = self.cfg_task.fixed_asset_cfg.thread_pitch
-        self.fixed_success_pos_local[:, 2] = head_height + shank_length - thread_pitch * 1.5
+        if self.cfg_task.name == "peg_insert":
+            self.fixed_success_pos_local[:, 2] = 0.0
+        elif self.cfg_task.name == "gear_mesh":
+            gear_base_offset = self._get_target_gear_base_offset()
+            self.fixed_success_pos_local[:, 0] = gear_base_offset[0]
+            self.fixed_success_pos_local[:, 2] = gear_base_offset[2]
+        elif self.cfg_task.name == "nut_thread":
+            head_height = self.cfg_task.fixed_asset_cfg.base_height
+            shank_length = self.cfg_task.fixed_asset_cfg.height
+            thread_pitch = self.cfg_task.fixed_asset_cfg.thread_pitch
+            self.fixed_success_pos_local[:, 2] = head_height + shank_length - thread_pitch * 1.5
+        else:
+            raise NotImplementedError("Task not implemented")
+
         self.ep_succeeded = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
         self.ep_success_times = torch.zeros((self.num_envs,), dtype=torch.long, device=self.device)
 
@@ -151,6 +168,10 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
         self._robot = Articulation(self.cfg.robot)
         self._fixed_asset = Articulation(self.cfg_task.fixed_asset)
         self._held_asset = Articulation(self.cfg_task.held_asset)
+        if self.cfg_task.name == "gear_mesh":
+            self._small_gear_asset = Articulation(self.cfg_task.small_gear_cfg)
+            self._large_gear_asset = Articulation(self.cfg_task.large_gear_cfg)
+
         self.scene.clone_environments(copy_from_source=False)
 
         self.scene.articulations["robot"] = self._robot
@@ -234,12 +255,6 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
         prev_actions = self.actions.clone()
 
         obs_dict = {
-            # "fingertip_midpoint_pos": self.fingertip_midpoint_pos,
-            # "fingertip_midpoint_quat": self.fingertip_midpoint_quat,
-            # "fingertip_midpoint_linvel": self.fingertip_midpoint_linvel,
-            # "fingertip_midpoint_angvel": self.fingertip_midpoint_angvel,
-            # "nut_grasp_pos": self.nut_grasp_pos,
-            # "nut_grasp_quat": self.nut_grasp_quat,
             "fingertip_pos": self.fingertip_midpoint_pos,
             "fingertip_pos_rel_fixed": self.fingertip_midpoint_pos - noisy_fixed_pos,
             "fingertip_quat": self.fingertip_midpoint_quat,
@@ -420,8 +435,12 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
         is_centered = torch.where(xy_dist < 0.0025, torch.ones_like(curr_successes), torch.zeros_like(curr_successes))
         # Height threshold to target
         fixed_cfg = self.cfg_task.fixed_asset_cfg
-        # elif self.cfg_task.name == "nut_bolt_pick":
-        height_threshold = fixed_cfg.thread_pitch * success_threshold
+        if self.cfg_task.name == "peg_insert" or self.cfg_task.name == "gear_mesh":
+            height_threshold = fixed_cfg.height * success_threshold
+        elif self.cfg_task.name == "nut_thread":
+            height_threshold = fixed_cfg.thread_pitch * success_threshold
+        else:
+            raise NotImplementedError("Task not implemented")
         is_close_or_below = torch.where(
             z_disp < height_threshold, torch.ones_like(curr_successes), torch.zeros_like(curr_successes)
         )
@@ -436,7 +455,7 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
     def _get_rewards(self):
         """Update rewards and compute success statistics."""
         # Get successful and failed envs at current timestep
-        check_rot = self.cfg_task.name == "nut_bolt_pick"
+        check_rot = self.cfg_task.name == "nut_thread"
         curr_successes = self._get_curr_successes(
             success_threshold=self.cfg_task.success_threshold, check_rot=check_rot
         )
@@ -582,11 +601,23 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
     def get_handheld_asset_relative_pose(self):
         """Get default relative pose between help asset and fingertip."""
-        # elif self.cfg_task.name == "nut_bolt_pick":
-        held_asset_relative_pos = self.held_base_pos_local
+        if self.cfg_task.name == "peg_insert":
+            held_asset_relative_pos = torch.zeros_like(self.held_base_pos_local)
+            held_asset_relative_pos[:, 2] = self.cfg_task.held_asset_cfg.height
+            held_asset_relative_pos[:, 2] -= self.cfg_task.robot_cfg.franka_fingerpad_length
+        elif self.cfg_task.name == "gear_mesh":
+            held_asset_relative_pos = torch.zeros_like(self.held_base_pos_local)
+            gear_base_offset = self._get_target_gear_base_offset()
+            held_asset_relative_pos[:, 0] += gear_base_offset[0]
+            held_asset_relative_pos[:, 2] += gear_base_offset[2]
+            held_asset_relative_pos[:, 2] += self.cfg_task.held_asset_cfg.height / 2.0 * 1.1
+        elif self.cfg_task.name == "nut_thread":
+            held_asset_relative_pos = self.held_base_pos_local
+        else:
+            raise NotImplementedError("Task not implemented")
 
         held_asset_relative_quat = self.identity_quat
-        if self.cfg_task.name == "nut_bolt_pick":
+        if self.cfg_task.name == "nut_thread":
             # Rotate along z-axis of frame for default position.
             initial_rot_deg = self.cfg_task.held_asset_rot_init
             rot_yaw_euler = torch.tensor([0.0, 0.0, initial_rot_deg * np.pi / 180.0], device=self.device).repeat(
@@ -682,54 +713,70 @@ class FactoryNutBoltPickEnv(DirectRLEnv):
 
         hand_down_quat = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
         self.hand_down_euler = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
-        # while True:
-        #     n_bad = bad_envs.shape[0]
+        while True:
+            n_bad = bad_envs.shape[0]
 
-        #     above_fixed_pos = fixed_tip_pos.clone()
-        #     above_fixed_pos[:, 2] += self.cfg_task.hand_init_pos[2]
+            above_fixed_pos = fixed_tip_pos.clone()
+            above_fixed_pos[:, 2] += self.cfg_task.hand_init_pos[2]
 
-        #     rand_sample = torch.rand((n_bad, 3), dtype=torch.float32, device=self.device)
-        #     above_fixed_pos_rand = 2 * (rand_sample - 0.5)  # [-1, 1]
-        #     hand_init_pos_rand = torch.tensor(self.cfg_task.hand_init_pos_noise, device=self.device)
-        #     above_fixed_pos_rand = above_fixed_pos_rand @ torch.diag(hand_init_pos_rand)
-        #     above_fixed_pos[bad_envs] += above_fixed_pos_rand
+            rand_sample = torch.rand((n_bad, 3), dtype=torch.float32, device=self.device)
+            above_fixed_pos_rand = 2 * (rand_sample - 0.5)  # [-1, 1]
+            hand_init_pos_rand = torch.tensor(self.cfg_task.hand_init_pos_noise, device=self.device)
+            above_fixed_pos_rand = above_fixed_pos_rand @ torch.diag(hand_init_pos_rand)
+            above_fixed_pos[bad_envs] += above_fixed_pos_rand
 
-        #     # (b) get random orientation facing down
-        #     hand_down_euler = (
-        #         torch.tensor(self.cfg_task.hand_init_orn, device=self.device).unsqueeze(0).repeat(n_bad, 1)
-        #     )
+            # (b) get random orientation facing down
+            hand_down_euler = (
+                torch.tensor(self.cfg_task.hand_init_orn, device=self.device).unsqueeze(0).repeat(n_bad, 1)
+            )
 
-        #     rand_sample = torch.rand((n_bad, 3), dtype=torch.float32, device=self.device)
-        #     above_fixed_orn_noise = 2 * (rand_sample - 0.5)  # [-1, 1]
-        #     hand_init_orn_rand = torch.tensor(self.cfg_task.hand_init_orn_noise, device=self.device)
-        #     above_fixed_orn_noise = above_fixed_orn_noise @ torch.diag(hand_init_orn_rand)
-        #     hand_down_euler += above_fixed_orn_noise
-        #     self.hand_down_euler[bad_envs, ...] = hand_down_euler
-        #     hand_down_quat[bad_envs, :] = torch_utils.quat_from_euler_xyz(
-        #         roll=hand_down_euler[:, 0], pitch=hand_down_euler[:, 1], yaw=hand_down_euler[:, 2]
-        #     )
+            rand_sample = torch.rand((n_bad, 3), dtype=torch.float32, device=self.device)
+            above_fixed_orn_noise = 2 * (rand_sample - 0.5)  # [-1, 1]
+            hand_init_orn_rand = torch.tensor(self.cfg_task.hand_init_orn_noise, device=self.device)
+            above_fixed_orn_noise = above_fixed_orn_noise @ torch.diag(hand_init_orn_rand)
+            hand_down_euler += above_fixed_orn_noise
+            self.hand_down_euler[bad_envs, ...] = hand_down_euler
+            hand_down_quat[bad_envs, :] = torch_utils.quat_from_euler_xyz(
+                roll=hand_down_euler[:, 0], pitch=hand_down_euler[:, 1], yaw=hand_down_euler[:, 2]
+            )
 
-        #     # (c) iterative IK Method
-        #     self.ctrl_target_fingertip_midpoint_pos[bad_envs, ...] = above_fixed_pos[bad_envs, ...]
-        #     self.ctrl_target_fingertip_midpoint_quat[bad_envs, ...] = hand_down_quat[bad_envs, :]
+            # (c) iterative IK Method
+            self.ctrl_target_fingertip_midpoint_pos[bad_envs, ...] = above_fixed_pos[bad_envs, ...]
+            self.ctrl_target_fingertip_midpoint_quat[bad_envs, ...] = hand_down_quat[bad_envs, :]
 
-        #     pos_error, aa_error = self.set_pos_inverse_kinematics(env_ids=bad_envs)
-        #     pos_error = torch.linalg.norm(pos_error, dim=1) > 1e-3
-        #     angle_error = torch.norm(aa_error, dim=1) > 1e-3
-        #     any_error = torch.logical_or(pos_error, angle_error)
-        #     bad_envs = bad_envs[any_error.nonzero(as_tuple=False).squeeze(-1)]
+            pos_error, aa_error = self.set_pos_inverse_kinematics(env_ids=bad_envs)
+            pos_error = torch.linalg.norm(pos_error, dim=1) > 1e-3
+            angle_error = torch.norm(aa_error, dim=1) > 1e-3
+            any_error = torch.logical_or(pos_error, angle_error)
+            bad_envs = bad_envs[any_error.nonzero(as_tuple=False).squeeze(-1)]
 
-        #     # Check IK succeeded for all envs, otherwise try again for those envs
-        #     if bad_envs.shape[0] == 0:
-        #         break
+            # Check IK succeeded for all envs, otherwise try again for those envs
+            if bad_envs.shape[0] == 0:
+                break
 
-        self._set_franka_to_default_pose(
-            joints=[0.00871, -0.10368, -0.00794, -1.49139, -0.00083, 1.38774, 0.0], env_ids=bad_envs
-        )
+            self._set_franka_to_default_pose(
+                joints=[0.00871, -0.10368, -0.00794, -1.49139, -0.00083, 1.38774, 0.0], env_ids=bad_envs
+            )
 
-            # ik_attempt += 1
+            ik_attempt += 1
 
         self.step_sim_no_action()
+
+        # Add flanking gears after servo (so arm doesn't move them).
+        if self.cfg_task.name == "gear_mesh" and self.cfg_task.add_flanking_gears:
+            small_gear_state = self._small_gear_asset.data.default_root_state.clone()[env_ids]
+            small_gear_state[:, 0:7] = fixed_state[:, 0:7]
+            small_gear_state[:, 7:] = 0.0  # vel
+            self._small_gear_asset.write_root_pose_to_sim(small_gear_state[:, 0:7], env_ids=env_ids)
+            self._small_gear_asset.write_root_velocity_to_sim(small_gear_state[:, 7:], env_ids=env_ids)
+            self._small_gear_asset.reset()
+
+            large_gear_state = self._large_gear_asset.data.default_root_state.clone()[env_ids]
+            large_gear_state[:, 0:7] = fixed_state[:, 0:7]
+            large_gear_state[:, 7:] = 0.0  # vel
+            self._large_gear_asset.write_root_pose_to_sim(large_gear_state[:, 0:7], env_ids=env_ids)
+            self._large_gear_asset.write_root_velocity_to_sim(large_gear_state[:, 7:], env_ids=env_ids)
+            self._large_gear_asset.reset()
 
         # (3) Randomize asset-in-gripper location.
         # flip gripper z orientation

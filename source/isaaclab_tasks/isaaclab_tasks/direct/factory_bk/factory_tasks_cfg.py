@@ -291,7 +291,7 @@ class GearMesh(FactoryTask):
     engage_threshold: float = 0.9
 
     fixed_asset: ArticulationCfg = ArticulationCfg(
-        prim_path="/World/envs/env_.*/FixedAsset1",
+        prim_path="/World/envs/env_.*/FixedAsset",
         spawn=sim_utils.UsdFileCfg(
             usd_path=fixed_asset_cfg.usd_path,
             activate_contact_sensors=True,
@@ -316,7 +316,7 @@ class GearMesh(FactoryTask):
         actuators={},
     )
     held_asset: ArticulationCfg = ArticulationCfg(
-        prim_path="/World/envs/env_.*/HeldAsset2",
+        prim_path="/World/envs/env_.*/HeldAsset",
         spawn=sim_utils.UsdFileCfg(
             usd_path=held_asset_cfg.usd_path,
             activate_contact_sensors=True,
@@ -446,141 +446,3 @@ class NutThread(FactoryTask):
         ),
         actuators={},
     )
-
-@configclass
-class NutBoltPick(FactoryTask):
-    name = "nut_bolt_pick"
-    fixed_asset_cfg = BoltM16()
-    held_asset_cfg = NutM16()
-    asset_size = 16.0
-    duration_s = 30.0
-
-    # Robot
-    hand_init_pos: list = [0.0, 0.0, 0.015]  # Relative to fixed asset tip.
-    hand_init_pos_noise: list = [0.02, 0.02, 0.01]
-    hand_init_orn: list = [3.1416, 0.0, 1.83]
-    hand_init_orn_noise: list = [0.0, 0.0, 0.26]
-
-    # Action
-    unidirectional_rot: bool = True
-
-    # Fixed Asset (applies to all tasks)
-    fixed_asset_init_pos_noise: list = [0.05, 0.05, 0.05]
-    fixed_asset_init_orn_deg: float = 120.0
-    fixed_asset_init_orn_range_deg: float = 30.0
-
-    # Held Asset (applies to all tasks)
-    held_asset_pos_noise: list = [0.0, 0.003, 0.003]  # noise level of the held asset in gripper
-    held_asset_rot_init: float = -90.0
-
-    # Reward.
-    ee_success_yaw = 0.0
-    keypoint_coef_baseline: list = [100, 2]
-    keypoint_coef_coarse: list = [500, 2]  # 100, 2
-    keypoint_coef_fine: list = [1500, 0]  # 500, 0
-    # Fraction of thread-height.
-    success_threshold: float = 0.375
-    engage_threshold: float = 0.5
-    keypoint_scale: float = 0.05
-    
-    fixed_asset: ArticulationCfg = ArticulationCfg(
-        prim_path="/World/envs/env_.*/FixedAsset",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=held_asset_cfg.usd_path,
-            activate_contact_sensors=False,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                max_depenetration_velocity=5.0,
-                linear_damping=0.0,
-                angular_damping=0.0,
-                max_linear_velocity=1000.0,
-                max_angular_velocity=3666.0,
-                enable_gyroscopic_forces=True,
-                solver_position_iteration_count=192,
-                solver_velocity_iteration_count=1,
-                max_contact_impulse=1e32,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
-            collision_props=None,
-        ),
-        init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.6, 0.0, 0.05), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-        ),
-        actuators={},
-    )
-    held_asset: ArticulationCfg = ArticulationCfg(
-        prim_path="/World/envs/env_.*/HeldAsset",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=held_asset_cfg.usd_path,
-            activate_contact_sensors=False,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                max_depenetration_velocity=5.0,
-                linear_damping=0.0,
-                angular_damping=0.0,
-                max_linear_velocity=1000.0,
-                max_angular_velocity=3666.0,
-                enable_gyroscopic_forces=True,
-                solver_position_iteration_count=192,
-                solver_velocity_iteration_count=1,
-                max_contact_impulse=1e32,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
-            collision_props=None,
-        ),
-        init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.6, 0.0, 0.05), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-        ),
-        actuators={},
-    )
-    
-    # fixed_asset: ArticulationCfg = ArticulationCfg(
-    #     prim_path="/World/envs/env_.*/FixedAsset",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=fixed_asset_cfg.usd_path,
-    #         activate_contact_sensors=True,
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             disable_gravity=False,
-    #             max_depenetration_velocity=5.0,
-    #             linear_damping=0.0,
-    #             angular_damping=0.0,
-    #             max_linear_velocity=1000.0,
-    #             max_angular_velocity=3666.0,
-    #             enable_gyroscopic_forces=True,
-    #             solver_position_iteration_count=192,
-    #             solver_velocity_iteration_count=1,
-    #             max_contact_impulse=1e32,
-    #         ),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-    #     ),
-    #     init_state=ArticulationCfg.InitialStateCfg(
-    #         pos=(0.6, 0.0, 0.05), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-    #     ),
-    #     actuators={},
-    # )
-    # held_asset: ArticulationCfg = ArticulationCfg(
-    #     prim_path="/World/envs/env_.*/HeldAsset",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=held_asset_cfg.usd_path,
-    #         activate_contact_sensors=True,
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             disable_gravity=False,
-    #             max_depenetration_velocity=5.0,
-    #             linear_damping=0.0,
-    #             angular_damping=0.0,
-    #             max_linear_velocity=1000.0,
-    #             max_angular_velocity=3666.0,
-    #             enable_gyroscopic_forces=True,
-    #             solver_position_iteration_count=192,
-    #             solver_velocity_iteration_count=1,
-    #             max_contact_impulse=1e32,
-    #         ),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-    #     ),
-    #     init_state=ArticulationCfg.InitialStateCfg(
-    #         pos=(0.6, 0.0, 0.05), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
-    #     ),
-    #     actuators={},
-    # )

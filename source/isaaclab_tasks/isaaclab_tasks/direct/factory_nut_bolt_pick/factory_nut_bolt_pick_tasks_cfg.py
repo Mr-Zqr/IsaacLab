@@ -111,7 +111,7 @@ class NutBoltPick(FactoryTask):
 
     # Robot
     hand_init_pos: list = [0.0, 0.0, 0.015]  # Relative to fixed asset tip.
-    hand_init_pos_noise: list = [0.02, 0.02, 0.01]
+    hand_init_pos_noise: list = [0.22, 0.22, 0.00]
     hand_init_orn: list = [3.1416, 0.0, 1.83]
     hand_init_orn_noise: list = [0.0, 0.0, 0.26]
 
@@ -119,7 +119,7 @@ class NutBoltPick(FactoryTask):
     unidirectional_rot: bool = True
 
     # Fixed Asset (applies to all tasks)
-    fixed_asset_init_pos_noise: list = [0.05, 0.05, 0.05]
+    fixed_asset_init_pos_noise: list = [0.25, 0.25, 0.00]
     fixed_asset_init_orn_deg: float = 120.0
     fixed_asset_init_orn_range_deg: float = 30.0
 
@@ -158,7 +158,7 @@ class NutBoltPick(FactoryTask):
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.6, 0.0, 0.05), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+            pos=(0.6, 0.0, 0.00), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
         ),
         actuators={},
     )
@@ -183,7 +183,7 @@ class NutBoltPick(FactoryTask):
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.4, 0.1), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
+            pos=(0.5, 0.1, 0.0), rot=(1.0, 0.0, 0.0, 0.0), joint_pos={}, joint_vel={}
         ),
         actuators={},
     )

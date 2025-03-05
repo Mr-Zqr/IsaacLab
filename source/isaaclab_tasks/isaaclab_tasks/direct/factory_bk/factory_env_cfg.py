@@ -12,7 +12,7 @@ from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 from isaaclab.utils import configclass
 
-from .factory_tasks_cfg import ASSET_DIR, FactoryTask, GearMesh, NutThread, PegInsert, NutBoltPick
+from .factory_tasks_cfg import ASSET_DIR, FactoryTask, GearMesh, NutThread, PegInsert
 
 OBS_DIM_CFG = {
     "fingertip_pos": 3,
@@ -57,7 +57,6 @@ class CtrlCfg:
     rot_action_threshold = [0.097, 0.097, 0.097]
 
     reset_joints = [1.5178e-03, -1.9651e-01, -1.4364e-03, -1.9761, -2.7717e-04, 1.7796, 7.8556e-01]
-    # reset_joints = [200, 200, 200, 200, 200, 200, 200]
     reset_task_prop_gains = [300, 300, 300, 20, 20, 20]
     reset_rot_deriv_scale = 10.0
     default_task_prop_gains = [100, 100, 100, 30, 30, 30]
@@ -118,81 +117,10 @@ class FactoryEnvCfg(DirectRLEnvCfg):
 
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=128, env_spacing=2.0)
 
-    # robot = ArticulationCfg(
-    #     prim_path="/World/envs/env_.*/Robot",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ASSET_DIR}/franka_mimic.usd",
-    #         activate_contact_sensors=True,
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             disable_gravity=True,
-    #             max_depenetration_velocity=5.0,
-    #             linear_damping=0.0,
-    #             angular_damping=0.0,
-    #             max_linear_velocity=1000.0,
-    #             max_angular_velocity=3666.0,
-    #             enable_gyroscopic_forces=True,
-    #             solver_position_iteration_count=192,
-    #             solver_velocity_iteration_count=1,
-    #             max_contact_impulse=1e32,
-    #         ),
-    #         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-    #             enabled_self_collisions=False,
-    #             solver_position_iteration_count=192,
-    #             solver_velocity_iteration_count=1,
-    #         ),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-    #     ),
-    #     init_state=ArticulationCfg.InitialStateCfg(
-    #         joint_pos={
-    #             "panda_joint1": 0.00871,
-    #             "panda_joint2": -0.10368,
-    #             "panda_joint3": -0.00794,
-    #             "panda_joint4": -1.49139,
-    #             "panda_joint5": -0.00083,
-    #             "panda_joint6": 1.38774,
-    #             "panda_joint7": 0.0,
-    #             "panda_finger_joint2": 0.04,
-    #         },
-    #         pos=(0.0, 0.0, 0.0),
-    #         rot=(1.0, 0.0, 0.0, 0.0),
-    #     ),
-    #     actuators={
-    #         "panda_arm1": ImplicitActuatorCfg(
-    #             joint_names_expr=["panda_joint[1-4]"],
-    #             stiffness=0.0,
-    #             damping=0.0,
-    #             friction=0.0,
-    #             armature=0.0,
-    #             effort_limit=87,
-    #             velocity_limit=124.6,
-    #         ),
-    #         "panda_arm2": ImplicitActuatorCfg(
-    #             joint_names_expr=["panda_joint[5-7]"],
-    #             stiffness=0.0,
-    #             damping=0.0,
-    #             friction=0.0,
-    #             armature=0.0,
-    #             effort_limit=12,
-    #             velocity_limit=149.5,
-    #         ),
-    #         "panda_hand": ImplicitActuatorCfg(
-    #             joint_names_expr=["panda_finger_joint[1-2]"],
-    #             effort_limit=40.0,
-    #             velocity_limit=0.04,
-    #             stiffness=7500.0,
-    #             damping=173.0,
-    #             friction=0.1,
-    #             armature=0.0,
-    #         ),
-    #     },
-    # )
-    
     robot = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            # usd_path=f"{ASSET_DIR}/franka_mimic.usd",
-            usd_path=f"D:/APPS/isaac-sim-assets-450/Assets/Isaac/4.5/Isaac/Robots/FactoryFranka/factory_franka_instanceable.usd",
-            # usd_path=f"/home/zxh/Downloads/isaac-sim-assets/Assets/Isaac/4.5/Isaac/Robots/FactoryFranka/factory_franka_instanceable.usd",
+            usd_path=f"{ASSET_DIR}/franka_mimic.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -215,14 +143,14 @@ class FactoryEnvCfg(DirectRLEnvCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             joint_pos={
-                "panda_joint1": 100.0,
-                "panda_joint2": -0.00,
-                "panda_joint3": -0.00,
-                "panda_joint4": -4,
-                "panda_joint5": -0.000,
-                "panda_joint6": 0.0,
+                "panda_joint1": 0.00871,
+                "panda_joint2": -0.10368,
+                "panda_joint3": -0.00794,
+                "panda_joint4": -1.49139,
+                "panda_joint5": -0.00083,
+                "panda_joint6": 1.38774,
                 "panda_joint7": 0.0,
-                "panda_finger_joint2": 0.08,
+                "panda_finger_joint2": 0.04,
             },
             pos=(0.0, 0.0, 0.0),
             rot=(1.0, 0.0, 0.0, 0.0),
@@ -257,7 +185,6 @@ class FactoryEnvCfg(DirectRLEnvCfg):
             ),
         },
     )
-            
 
 
 @configclass
@@ -279,9 +206,3 @@ class FactoryTaskNutThreadCfg(FactoryEnvCfg):
     task_name = "nut_thread"
     task = NutThread()
     episode_length_s = 30.0
-
-@configclass
-class FactoryTaskNutBoltPickCfg(FactoryEnvCfg):
-    task_name = "nut_bolt_pick"
-    task = NutBoltPick()
-    episode_length_s = 10.0
